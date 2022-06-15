@@ -1,0 +1,79 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: torchserve
+  labels:
+    app: torchserve
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/port: '8082'
+spec:
+  ports:
+  - name: preds
+    port: 8080
+    targetPort: ts 
+  - name: mdl
+    port: 8081
+    targetPort: ts-management
+  - name: metrics
+    port: 8082
+    targetPort: ts-metrics  
+  selector:
+    app: torchserve
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: torchserve
+  labels:
+    app: torchserve
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: torchserve
+  template:
+    metadata:
+      labels:
+        app: torchserve
+    spec:
+      volumes:
+      - name: model-store
+        persistentVolumeClaim:
+          claimName: torchserve-pvc
+      containers:
+      - name: modelloadersidecar
+        image: nqhiezon.gra7.container-registry.ovh.net/dioptify/torchserve_sidecar:latest        
+        volumeMounts:
+        - name: model-store
+          mountPath: /tmp/
+          readOnly: false
+        imagePullPolicy: Always   
+      - name: torchserve
+        image: pytorch/torchserve:0.6.0-cpu
+        args: ["torchserve", "--start",  "--model-store", "/home/model-server/model-store", "--ts-config", "/home/model-server/config.properties"]
+        ports:
+        - name: ts
+          containerPort: 8080
+        - name: ts-management
+          containerPort: 8081
+        - name: ts-metrics
+          containerPort: 8082
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+          - mountPath: /home/model-server/model-store/
+            name: model-store
+            readOnly: false
+        resources:
+          limits:
+            cpu: 1
+          #  memory: 10Gi            
+            nvidia.com/gpu: 1 #  Dont Forget to register Nvidia Operator
+          requests:
+            cpu: 1
+            memory: 10Gi
+
+      imagePullSecrets:
+        - name: harbor-registry-secret
+   
