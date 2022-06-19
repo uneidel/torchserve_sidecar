@@ -39,9 +39,9 @@ spec:
         app: torchserve
     spec:
       volumes:
-      - name: model-store
-        persistentVolumeClaim:
-          claimName: torchserve-pvc
+        - name: container-storage
+          emptyDir:
+            medium: Memory
       containers:
       - name: modelloadersidecar
         image: nqhiezon.gra7.container-registry.ovh.net/dioptify/torchserve_sidecar:latest        
