@@ -39,7 +39,7 @@ spec:
         app: torchserve
     spec:
       volumes:
-        - name: container-storage
+        - name: model-store
           emptyDir:
             medium: Memory
       containers:
